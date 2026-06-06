@@ -1,0 +1,53 @@
+# =============================================================================
+# Architecture TMV — Cloudflare Wrangler config
+# =============================================================================
+# Deploy team: replace placeholder database_id / bucket names, then:
+#   npm run d1:migrate:remote
+#   (wire OpenNext — see docs/DEPLOY_CLOUDFLARE.md)
+# =============================================================================
+
+name = "architecture-tmv"
+main = ".open-next/worker.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Uncomment after OpenNext build produces the worker bundle:
+# [assets]
+# directory = ".open-next/assets"
+# binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "architecture-tmv-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "architecture-tmv-media"
+
+[vars]
+SITE_ID = "default"
+R2_BUCKET_NAME = "architecture-tmv-media"
+# Public URL for uploaded images (custom domain or r2.dev public bucket URL)
+R2_PUBLIC_URL = "https://media.example.com"
+
+# Production secrets / overrides — prefer Cloudflare Dashboard → Workers → Settings → Variables
+# APP_MODE = "product"
+# NEXT_PUBLIC_APP_MODE = "product"
+
+[env.preview]
+name = "architecture-tmv-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "architecture-tmv-db-preview"
+database_id = "REPLACE_WITH_PREVIEW_D1_DATABASE_ID"
+
+[[env.preview.r2_buckets]]
+binding = "MEDIA"
+bucket_name = "architecture-tmv-media-preview"
+
+[env.preview.vars]
+SITE_ID = "default"
+R2_BUCKET_NAME = "architecture-tmv-media-preview"
+R2_PUBLIC_URL = "https://media-preview.example.com"
