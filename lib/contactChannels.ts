@@ -11,15 +11,58 @@ export interface ContactChannelOption {
 
 const CHANNEL_ORDER: ContactChannelKey[] = ['line', 'phone', 'email'];
 
+/** จำนวนหลักสูงสุด (เบอร์ไทยแบบ 0xx — ไม่นับขีด/เว้นวรรค) */
+export const PHONE_MAX_DIGITS = 10;
+
 function trim(value?: string): string | undefined {
   const v = value?.trim();
   return v || undefined;
 }
 
+/** จำกัด input ไม่เกิน 10 หลัก — อนุญาตตัวเลข ขีด และเว้นวรรค */
+export function sanitizePhoneInput(raw: string): string {
+  let digits = 0;
+  let out = '';
+
+  for (const ch of raw.replace(/^tel:/i, '')) {
+    if (/\d/.test(ch)) {
+      if (digits >= PHONE_MAX_DIGITS) continue;
+      digits += 1;
+      out += ch;
+    } else if (/[-\s]/.test(ch) && digits > 0 && digits < PHONE_MAX_DIGITS) {
+      out += ch;
+    }
+  }
+
+  return out;
+}
+
+/** เก็บเบอร์แบบที่ผู้ใช้พิมพ์ (เช่น 02-123-4567) — ตัดเฉพาะ tel: นำหน้า */
+export function normalizePhoneDisplay(raw?: string): string | undefined {
+  const v = raw?.trim().replace(/^tel:/i, '').trim();
+  if (!v) return undefined;
+  const sanitized = sanitizePhoneInput(v);
+  return sanitized || undefined;
+}
+
+/** แปลงเบอร์ที่แสดงเป็น tel: สำหรับกดโทร (0xx ไทย → +66 อัตโนมัติ) */
+export function buildPhoneTelHref(display: string): string {
+  const stripped = display.trim().replace(/^tel:/i, '').trim();
+  const hasPlus = stripped.startsWith('+');
+  const digits = stripped.replace(/\D/g, '');
+  if (!digits) return 'tel:';
+
+  if (hasPlus) return `tel:+${digits}`;
+  if (digits.startsWith('66') && digits.length >= 10) return `tel:+${digits}`;
+  if (digits.startsWith('0')) return `tel:+66${digits.slice(1)}`;
+
+  return `tel:${digits}`;
+}
+
 export function normalizeContactChannels(raw: Partial<ContactChannels>): ContactChannels {
   return {
     line: trim(raw.line),
-    phone: trim(raw.phone),
+    phone: normalizePhoneDisplay(raw.phone),
     email: trim(raw.email),
   };
 }
@@ -31,7 +74,7 @@ export function buildChannelHref(key: ContactChannelKey, value: string): string 
       if (value.startsWith('@')) return `https://line.me/R/ti/p/${value.slice(1)}`;
       return `https://line.me/R/ti/p/${value}`;
     case 'phone':
-      return `tel:${value.replace(/[^\d+]/g, '')}`;
+      return buildPhoneTelHref(value);
     case 'email':
       return value.startsWith('mailto:') ? value : `mailto:${value}`;
   }

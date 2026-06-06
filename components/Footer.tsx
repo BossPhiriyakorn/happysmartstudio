@@ -1,16 +1,22 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { useApp } from '@/components/AppContext';
-import ContactCtaButton from '@/components/ContactCtaButton';
+import { CONTACT_CHANNEL_LABELS } from '@/lib/contactLabels';
+import { getContactChannelOptions } from '@/lib/contactChannels';
 
 export default function Footer() {
-  const { branding, contactLabel, menuLinks, t } = useApp();
+  const { branding, contactChannels, menuLinks, t } = useApp();
   const year = new Date().getFullYear();
 
+  const channels = useMemo(
+    () => getContactChannelOptions(contactChannels, CONTACT_CHANNEL_LABELS),
+    [contactChannels],
+  );
+
   const styleLinks = menuLinks.filter(
-    (link) => link.pageId && link.href !== '/' && link.href !== '/contact'
+    (link) => link.pageId && link.href !== '/' && link.href !== '/contact',
   );
 
   return (
@@ -46,11 +52,29 @@ export default function Footer() {
           </div>
 
           {/* Contact Panel */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <h3 className="text-xs uppercase font-bold tracking-widest text-gray-500 mb-3">{t('footer.getInTouch')}</h3>
-            <ContactCtaButton className="flex items-center gap-2 group text-sm font-medium text-white hover:text-gray-300 transition-colors">
-              {contactLabel} <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
-            </ContactCtaButton>
+            {channels.length > 0 ? (
+              channels.map((channel) => (
+                <a
+                  key={channel.key}
+                  href={channel.href}
+                  {...(channel.key === 'line'
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                  className="group flex flex-col gap-0.5"
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    {channel.label}
+                  </span>
+                  <span className="text-gray-400 group-hover:text-white transition-colors text-sm font-medium break-all">
+                    {channel.value}
+                  </span>
+                </a>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">{branding.contactNoChannels}</p>
+            )}
           </div>
         </div>
         

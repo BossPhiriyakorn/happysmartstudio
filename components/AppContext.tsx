@@ -31,7 +31,7 @@ import { editUiLabel } from '@/lib/editUi';
 import { publicUiLabel } from '@/lib/publicUi';
 import { normalizeContactChannels } from '@/lib/contactChannels';
 import { removeAllStoredSiteData, removeStoredLocale, STORAGE_KEYS } from '@/lib/storageKeys';
-import { buildNavLinks } from '@/lib/menu';
+import { buildNavLinks, ABOUT_MENU_HREF } from '@/lib/menu';
 import { roomToPortfolioImages, normalizeHomeSlide } from '@/lib/roomImages';
 import {
   Room,
@@ -175,9 +175,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const homeNew = links.find((l) => l.href === '/');
       if (homePrev && homeNew) homeNew.name = homePrev.name;
     }
-    const contactPrev = prevLinks.find((l) => l.href === '/contact');
-    const contactNew = links.find((l) => l.href === '/contact');
-    if (contactPrev && contactNew) contactNew.name = contactPrev.name;
+    const aboutPrev = prevLinks.find(
+      (l) => l.href === ABOUT_MENU_HREF || l.href === '/contact' || l.href === '/#team',
+    );
+    const aboutNew = links.find((l) => l.href === ABOUT_MENU_HREF);
+    if (aboutPrev && aboutNew && aboutPrev.name !== 'ติดต่อ') aboutNew.name = aboutPrev.name;
     return links;
   };
 

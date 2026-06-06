@@ -48,6 +48,7 @@ import { Field, SectionCard, inputClass, textareaClass } from '@/components/edit
 import { MAX_FEATURED_PER_PAGE, isValidFeaturedRank } from '@/lib/featuredRooms';
 import { aspectRatioClass, formatImageSizeGuide, SLIDE_DEFAULT_ASPECT_RATIO } from '@/lib/imageCrop';
 import { shouldBypassImageOptimizer } from '@/lib/imageDisplay';
+import { sanitizePhoneInput } from '@/lib/contactChannels';
 import { roomCoverAspectRatio } from '@/lib/roomImages';
 
 function PreviewPageButton({
@@ -120,7 +121,6 @@ export default function EditPage() {
         label: t('edit.menu.targetStyle').replace('{name}', page.name),
       });
     }
-    opts.push({ value: 'add-page', label: t('edit.tab.addPage') });
     return opts;
   }, [stylePages, t]);
 
@@ -727,11 +727,19 @@ export default function EditPage() {
                       <label className="text-xs uppercase font-bold text-gray-500 tracking-wider">
                         {t('edit.contactSettings.phoneLabel')}
                       </label>
-                      <p className="text-[10px] text-gray-400 min-h-[1.25rem] leading-snug">{t('edit.contactSettings.phonePlaceholder')}</p>
+                      <p className="text-[10px] text-gray-400 min-h-[1.25rem] leading-snug">{t('edit.contactSettings.phoneHint')}</p>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        placeholder={t('edit.contactSettings.phonePlaceholder')}
                         value={contactForm.phone}
-                        onChange={(e) => setContactForm((prev) => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) =>
+                          setContactForm((prev) => ({
+                            ...prev,
+                            phone: sanitizePhoneInput(e.target.value),
+                          }))
+                        }
                         className="border border-gray-200 bg-white focus:border-black p-3 text-sm focus:outline-none transition-colors w-full"
                       />
                     </div>
@@ -922,6 +930,8 @@ export default function EditPage() {
                 options={menuOptions}
                 title={t('edit.menu.title')}
                 description={t('edit.menu.desc')}
+                addMenuLabel={t('edit.tab.addPage')}
+                onAddMenu={() => setMenuSelection('add-page')}
               />
 
               {menuSelection === 'home' && (

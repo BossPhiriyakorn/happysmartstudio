@@ -1,4 +1,5 @@
-import { buildHomeContactMenuLinks } from '@/lib/data/defaults';
+import { buildHomeContactMenuLinks, DEFAULT_CONTACT_LABEL } from '@/lib/data/defaults';
+import { migrateMenuLinks } from '@/lib/data/migrations';
 import type { Branding, SiteSnapshot } from '@/lib/data/types';
 import type {
   HomeSlide,
@@ -244,15 +245,17 @@ export async function loadSnapshotFromD1(db: D1Database, siteId: string): Promis
     imageUrl: str(row, 'image_url'),
   }));
 
-  const contactLabel = str(contactRow ?? {}, 'label', 'ติดต่อ');
+  const contactLabel = DEFAULT_CONTACT_LABEL;
 
   return {
     branding: rowToBranding(brandingRow),
     stylePages,
-    menuLinks:
+    menuLinks: migrateMenuLinks(
       menuLinks.length > 0
         ? menuLinks
         : buildHomeContactMenuLinks(stylePages, contactLabel, rowToBranding(brandingRow).homeLabel),
+      contactLabel,
+    ),
     rooms,
     homeSlides,
     keywords,
@@ -502,7 +505,7 @@ export function buildSaveSnapshotBatch(
       )
       .bind(
         b,
-        snapshot.contactLabel ?? 'ติดต่อ',
+        DEFAULT_CONTACT_LABEL,
         channels.line ?? null,
         channels.phone ?? null,
         channels.email ?? null,

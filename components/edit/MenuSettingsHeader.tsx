@@ -1,5 +1,7 @@
 'use client';
 
+import { Plus } from 'lucide-react';
+
 export type MenuSelection =
   | 'home'
   | 'contact'
@@ -35,6 +37,8 @@ interface MenuSettingsHeaderProps {
   options: MenuOption[];
   title: string;
   description: string;
+  addMenuLabel?: string;
+  onAddMenu?: () => void;
 }
 
 const selectClass =
@@ -46,11 +50,32 @@ export default function MenuSettingsHeader({
   options,
   title,
   description,
+  addMenuLabel,
+  onAddMenu,
 }: MenuSettingsHeaderProps) {
+  const selectValue = selection === 'add-page' ? '' : selection;
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight text-black mb-1">{title}</h2>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-1">
+          <h2 className="text-xl font-bold tracking-tight text-black">{title}</h2>
+          {addMenuLabel && onAddMenu && (
+            <button
+              type="button"
+              onClick={onAddMenu}
+              aria-pressed={selection === 'add-page'}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest transition-colors ${
+                selection === 'add-page'
+                  ? 'bg-black text-white'
+                  : 'border border-gray-200 bg-white text-black hover:border-black'
+              }`}
+            >
+              <Plus size={14} strokeWidth={2} />
+              {addMenuLabel}
+            </button>
+          )}
+        </div>
         <p className="text-gray-500 text-xs leading-relaxed">{description}</p>
       </div>
       <div className="flex flex-col gap-1.5 sm:items-end shrink-0">
@@ -59,10 +84,15 @@ export default function MenuSettingsHeader({
         </label>
         <select
           id="menu-target-select"
-          value={selection}
+          value={selectValue}
           onChange={(e) => onSelectionChange(normalizeMenuSelection(e.target.value))}
           className={selectClass}
         >
+          {selection === 'add-page' && (
+            <option value="" disabled>
+              เลือกเมนู...
+            </option>
+          )}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}

@@ -89,7 +89,7 @@ export default function TeamShowcase() {
             : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 max-w-5xl';
 
   return (
-    <section className={`pt-12 pb-10 border-t border-gray-100 bg-white ${PAGE_SHELL}`}>
+    <section id="team" className={`pt-12 pb-10 border-t border-gray-100 bg-white ${PAGE_SHELL}`}>
       <div className="w-full">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-black mb-1">
           {branding.teamSectionTitle}

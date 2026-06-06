@@ -1,10 +1,11 @@
 import { DEMO_ROOMS } from '@/data/demoData';
 import { ENABLE_MOCK_DATA } from '@/lib/env';
 import { roomToPortfolioImages } from '@/lib/roomImages';
-import type { HomeSlide, Room, StylePage, TeamMember } from '@/types/content';
+import { ABOUT_MENU_HREF } from '@/lib/menu';
+import type { HomeSlide, MenuLink, Room, StylePage, TeamMember } from '@/types/content';
 import { RESERVED_SLUGS, slugify } from '@/types/content';
 import type { Branding } from '@/lib/data/types';
-import { DEFAULT_BRANDING } from '@/lib/data/defaults';
+import { DEFAULT_ABOUT_LABEL, DEFAULT_BRANDING, DEFAULT_CONTACT_LABEL } from '@/lib/data/defaults';
 
 const DEMO_ROOM_BY_ID = new Map(DEMO_ROOMS.map((r) => [r.id, r]));
 
@@ -132,6 +133,27 @@ export function migrateRoom(raw: Record<string, unknown>): Room {
     imageUrls: images.map((i) => fixRemovedUnsplashUrl(i.url)),
     featuredRank: partial.featuredRank,
   };
+}
+
+/** แยกเมนู «เกี่ยวกับเรา» ออกจากปุ่มติดต่อ — ลิงก์ไป /contact แต่ไม่ใช้ชื่อปุ่ม CTA */
+export function migrateMenuLinks(
+  links: MenuLink[],
+  contactLabel = DEFAULT_CONTACT_LABEL,
+): MenuLink[] {
+  return links.map((link) => {
+    const isAboutNav =
+      link.href === '/contact' || link.href === '/#team' || link.href === ABOUT_MENU_HREF;
+    if (!isAboutNav) return link;
+
+    const duplicateContactNav =
+      link.name === DEFAULT_CONTACT_LABEL || link.name === contactLabel;
+
+    return {
+      ...link,
+      href: ABOUT_MENU_HREF,
+      name: duplicateContactNav ? DEFAULT_ABOUT_LABEL : link.name,
+    };
+  });
 }
 
 export function migrateStylePage(raw: StylePage & { showInFilter?: boolean }): StylePage {

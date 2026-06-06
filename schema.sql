@@ -127,10 +127,7 @@ CREATE TABLE IF NOT EXISTS style_pages (
 CREATE INDEX IF NOT EXISTS idx_style_pages_site_sort
   ON style_pages (site_id, sort_order);
 
-INSERT OR IGNORE INTO style_pages (site_id, id, name, description, sort_order) VALUES
-  ('default', 'moderne', 'โมเดิร์น', 'ศิลปะร่วมสมัยผสานพื้นที่ใช้สอย', 0),
-  ('default', 'loft', 'ลอฟท์', 'Industrial raw และพื้นที่สร้างสรรค์', 1),
-  ('default', 'minimalist', 'มินิมอล', 'เรียบง่าย สงบ และใช้งานได้จริง', 2);
+-- style_pages: ไม่ seed — สร้างเมนูจาก /edit ได้
 
 -- -----------------------------------------------------------------------------
 -- Navigation menu links
@@ -168,11 +165,7 @@ CREATE TABLE IF NOT EXISTS keywords (
 CREATE INDEX IF NOT EXISTS idx_keywords_site_name
   ON keywords (site_id, name);
 
-INSERT OR IGNORE INTO keywords (site_id, id, name, sort_order) VALUES
-  ('default', 'kw_bedroom', 'ห้องนอน', 0),
-  ('default', 'kw_kitchen', 'ครัว', 1),
-  ('default', 'kw_living', 'ห้องนั่งเล่น', 2),
-  ('default', 'kw_office', 'สำนักงาน', 3);
+-- keywords: ไม่ seed — เพิ่มจาก /edit ได้
 
 -- -----------------------------------------------------------------------------
 -- Portfolio rooms / project cards
@@ -337,14 +330,8 @@ CREATE TABLE IF NOT EXISTS contact_settings (
   updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-INSERT OR IGNORE INTO contact_settings (site_id, label, line_url, phone, email)
-VALUES (
-  'default',
-  'ติดต่อ',
-  'https://line.me',
-  '+66 2 123 4567',
-  'hello@happysmart.studio'
-);
+-- contact_settings: ไม่ seed — ป้ายปุ่ม «ติดต่อ» ใช้ค่า hardcode ในแอป (DEFAULT_CONTACT_LABEL)
+-- ช่องทาง line/phone/email ตั้งจาก /edit แล้วบันทึกครั้งแรก
 
 -- -----------------------------------------------------------------------------
 -- Optional key-value settings (feature flags, analytics ids, etc.)

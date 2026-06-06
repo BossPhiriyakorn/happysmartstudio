@@ -51,11 +51,13 @@ export const MOCK_KEYWORDS: Keyword[] = [
 
 export const DEFAULT_CONTACT_CHANNELS: ContactChannels = {
   line: 'https://line.me',
-  phone: '+66 2 123 4567',
+  phone: '02-123-4567',
   email: 'hello@happysmart.studio',
 };
 
 export const DEFAULT_CONTACT_LABEL = 'ติดต่อ';
+
+export const DEFAULT_ABOUT_LABEL = 'เกี่ยวกับเรา';
 
 export const DEFAULT_KEYWORDS = MOCK_KEYWORDS;
 
@@ -74,13 +76,14 @@ export function getBootstrapKeywords(): Keyword[] {
 
 export function buildHomeContactMenuLinks(
   stylePages: StylePage[],
-  contactLabel = DEFAULT_CONTACT_LABEL,
+  _contactLabel = DEFAULT_CONTACT_LABEL,
   homeLabel = DEFAULT_BRANDING.homeLabel,
+  aboutLabel = DEFAULT_ABOUT_LABEL,
 ) {
-  return buildNavLinks(stylePages, contactLabel, homeLabel);
+  return buildNavLinks(stylePages, aboutLabel, homeLabel);
 }
 
-/** โหมด product / ไม่มี mock — เริ่มจากหน้าแรก + ติดต่อ เท่านั้น */
+/** โหมด product / ไม่มี mock — เริ่มจากหน้าแรก + เกี่ยวกับเรา เท่านั้น */
 export function productEmptySiteSnapshot(): SiteSnapshot {
   const branding = { ...DEFAULT_BRANDING };
   return {
@@ -91,7 +94,7 @@ export function productEmptySiteSnapshot(): SiteSnapshot {
     homeSlides: [],
     keywords: [],
     teamMembers: [],
-    contactChannels: { ...DEFAULT_CONTACT_CHANNELS },
+    contactChannels: {},
     contactLabel: DEFAULT_CONTACT_LABEL,
   };
 }

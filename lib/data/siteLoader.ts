@@ -17,6 +17,7 @@ import {
   migrateBranding,
   migrateRoom,
   migrateStylePage,
+  migrateMenuLinks,
   migrateTeamMember,
   storedJsonNeedsUnsplashFix,
   syncDemoRoomShowcaseContent,
@@ -61,9 +62,20 @@ export function loadSiteFromLocalStorage(): SiteSnapshot {
     migrateStylePage,
   );
 
-  const menuLinks = storedMenuLinks
+  const contactLabel = storedContactLabel || DEFAULT_CONTACT_LABEL;
+
+  const rawMenuLinks = storedMenuLinks
     ? JSON.parse(storedMenuLinks)
     : buildHomeContactMenuLinks(loadedPages, DEFAULT_CONTACT_LABEL, branding.homeLabel);
+  const menuLinks = migrateMenuLinks(rawMenuLinks, contactLabel);
+
+  if (
+    storedMenuLinks &&
+    typeof window !== 'undefined' &&
+    JSON.stringify(menuLinks) !== storedMenuLinks
+  ) {
+    localStorage.setItem(STORAGE_KEYS.menuLinks, JSON.stringify(menuLinks));
+  }
 
   let rooms: Room[] = storedRooms
     ? JSON.parse(storedRooms).map((r: Record<string, unknown>) => migrateRoom(r))
@@ -144,8 +156,6 @@ export function loadSiteFromLocalStorage(): SiteSnapshot {
     contactChannels = normalizeContactChannels({ ...DEFAULT_CONTACT_CHANNELS, ...legacy });
   }
 
-  const contactLabel = storedContactLabel || DEFAULT_CONTACT_LABEL;
-
   return {
     branding,
     stylePages: loadedPages,
@@ -163,12 +173,16 @@ export function loadSiteFromLocalStorage(): SiteSnapshot {
 export function hydrateProductSnapshot(raw: SiteSnapshot): SiteSnapshot {
   const stylePages = raw.stylePages.map(migrateStylePage);
   const branding = migrateBranding(raw.branding);
+  const contactLabel = raw.contactLabel || DEFAULT_CONTACT_LABEL;
   return {
     branding,
     stylePages,
-    menuLinks: raw.menuLinks.length
-      ? raw.menuLinks
-      : buildHomeContactMenuLinks(stylePages, raw.contactLabel || DEFAULT_CONTACT_LABEL, branding.homeLabel),
+    menuLinks: migrateMenuLinks(
+      raw.menuLinks.length
+        ? raw.menuLinks
+        : buildHomeContactMenuLinks(stylePages, contactLabel, branding.homeLabel),
+      contactLabel,
+    ),
     rooms: raw.rooms.map((r) => migrateRoom(r as unknown as Record<string, unknown>)),
     homeSlides: raw.homeSlides.map((s) =>
       normalizeHomeSlide({
@@ -179,6 +193,6 @@ export function hydrateProductSnapshot(raw: SiteSnapshot): SiteSnapshot {
     keywords: raw.keywords,
     teamMembers: raw.teamMembers.map(migrateTeamMember),
     contactChannels: normalizeContactChannels(raw.contactChannels),
-    contactLabel: raw.contactLabel || DEFAULT_CONTACT_LABEL,
+    contactLabel,
   };
 }

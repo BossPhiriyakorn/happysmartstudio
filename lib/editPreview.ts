@@ -119,7 +119,7 @@ export function mergeAppContextWithPreviewDraft(
     draft.contactChannels ?? base.contactChannels,
   );
   const contactLabel = draft.contactLabel ?? base.contactLabel;
-  const menuLinks = buildNavLinks(stylePages, contactLabel, branding.homeLabel);
+  const menuLinks = buildNavLinks(stylePages, undefined, branding.homeLabel);
 
   return {
     ...base,

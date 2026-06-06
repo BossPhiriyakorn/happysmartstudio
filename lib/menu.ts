@@ -1,8 +1,10 @@
 import { MenuLink, StylePage } from '@/types/content';
 
+export const ABOUT_MENU_HREF = '/contact';
+
 export function buildNavLinks(
   stylePages: StylePage[],
-  contactName = 'ติดต่อ',
+  aboutName = 'เกี่ยวกับเรา',
   homeName = 'หน้าแรก',
 ): MenuLink[] {
   return [
@@ -12,6 +14,6 @@ export function buildNavLinks(
       href: `/${page.id}`,
       pageId: page.id,
     })),
-    { name: contactName, href: '/contact' },
+    { name: aboutName, href: ABOUT_MENU_HREF },
   ];
 }

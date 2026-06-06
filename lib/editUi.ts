@@ -70,8 +70,8 @@ export const editUi = {
       "targetStyle": "{name}",
       "homeLabel": "ชื่อเมนูหน้าแรก",
       "homeHint": "แสดงในแถบนำทาง — ลิงก์ไปหน้าแรก",
-      "contactLabel": "ชื่อเมนูติดต่อ",
-      "contactHint": "แสดงในแถบนำทาง — ลิงก์ไปหน้าติดต่อ",
+      "contactLabel": "ข้อความปุ่มติดต่อ",
+      "contactHint": "แสดงบนปุ่มใน header/footer — เปิด popup เลือกช่องทางติดต่อ",
       "saveContact": "บันทึกเมนูติดต่อ"
     },
     "tab": {
@@ -158,7 +158,8 @@ export const editUi = {
       "lineLabel": "Line",
       "linePlaceholder": "https://line.me/... หรือ @username",
       "phoneLabel": "โทรศัพท์",
-      "phonePlaceholder": "+66 2 123 4567",
+      "phonePlaceholder": "02-123-4567",
+      "phoneHint": "ใส่เบอร์ตามปกติ ไม่เกิน 10 หลัก — ระบบทำให้กดโทรได้อัตโนมัติ",
       "emailLabel": "อีเมล",
       "emailPlaceholder": "hello@example.com",
       "previewTitle": "ตัวอย่างปุ่ม",
