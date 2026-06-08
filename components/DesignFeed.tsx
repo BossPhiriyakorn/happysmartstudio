@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useSyncExternalStore } from "react";
+import { useState, useMemo, useSyncExternalStore, useCallback } from "react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { Search } from "lucide-react";
@@ -16,6 +16,11 @@ import { buildShuffledFeedBlocks, type GridBlock } from "@/lib/feedLayout";
 import { shouldBypassImageOptimizer } from "@/lib/imageDisplay";
 import { slideFrameClass } from "@/lib/roomImages";
 import { PAGE_BLEED } from "@/lib/pageLayout";
+import { useRoomCardDeepLink } from "@/hooks/useRoomCardDeepLink";
+import { buildInspirationSlides } from "@/lib/homeInspirationSlides";
+
+/** วินาทีต่อรอบเลื่อนสไลด์ «แรงบันดาลใจประจำวัน» */
+const INSPIRATION_MARQUEE_DURATION_SEC = 42;
 
 export default function DesignFeed() {
   const mounted = useSyncExternalStore(
@@ -26,7 +31,17 @@ export default function DesignFeed() {
   const [activeTag, setActiveTag] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-  const { rooms, homeSlides, stylePages, branding, t } = useApp();
+  const { rooms, stylePages, branding, t } = useApp();
+
+  const onDeepLinkRoom = useCallback((room: Room) => {
+    setActiveTag(room.pageId);
+  }, []);
+
+  const { openRoom, closeRoom } = useRoomCardDeepLink({
+    rooms,
+    setSelectedRoom,
+    onDeepLinkRoom,
+  });
 
   const pageName = (pageId: string) =>
     stylePages.find((p) => p.id === pageId)?.name || pageId;
@@ -52,6 +67,11 @@ export default function DesignFeed() {
     return getFeaturedRooms(searched, resolvedActiveTag);
   }, [resolvedActiveTag, rooms, searchQuery, keywordCatalog]);
 
+  const inspirationSlides = useMemo(() => {
+    if (!mounted) return [];
+    return buildInspirationSlides(rooms);
+  }, [mounted, rooms]);
+
   const gridBlocks = useMemo((): GridBlock[] => {
     if (!mounted || rooms.length === 0) return [];
 
@@ -69,7 +89,12 @@ export default function DesignFeed() {
       filtered = filtered.filter((room) => !featuredIds.has(room.id));
     }
 
-    const limit = resolvedActiveTag === 'all' && !searchQuery.trim() ? 20 : 15;
+    const limit =
+      resolvedActiveTag === 'all' && !searchQuery.trim()
+        ? 30
+        : searchQuery.trim()
+          ? 15
+          : undefined;
     return buildShuffledFeedBlocks(filtered, limit);
   }, [mounted, resolvedActiveTag, searchQuery, rooms, keywordCatalog, featuredRooms]);
 
@@ -82,7 +107,8 @@ export default function DesignFeed() {
     );
   }
 
-  const duplicatedSliderItems = homeSlides.length > 0 ? [...homeSlides, ...homeSlides] : [];
+  const duplicatedSliderItems =
+    inspirationSlides.length > 0 ? [...inspirationSlides, ...inspirationSlides] : [];
 
   return (
     <>
@@ -92,12 +118,11 @@ export default function DesignFeed() {
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between w-full">
             <h2 className="text-xl font-semibold tracking-tight uppercase">{branding.feedSectionTitle}</h2>
-            <span className="text-xs font-mono text-gray-400">{stylePages.length} {t('common.styles')}</span>
           </div>
 
           <div className={`${PAGE_BLEED} overflow-hidden relative py-2 bg-gray-50 border-y border-gray-100`}>
             <motion.div
-              className="flex gap-4 px-6 lg:px-8 w-max"
+              className="flex items-start gap-4 px-6 lg:px-8 w-max"
               animate={{
                 x: [0, `calc(-50% - 8px)`],
               }}
@@ -105,7 +130,7 @@ export default function DesignFeed() {
                 x: {
                   repeat: Infinity,
                   repeatType: "loop",
-                  duration: 22,
+                  duration: INSPIRATION_MARQUEE_DURATION_SEC,
                   ease: "linear",
                 },
               }}
@@ -117,7 +142,7 @@ export default function DesignFeed() {
                   onClick={() => {
                     const roomId = slide.id.replace('slide_', '');
                     const matchedRoom = rooms.find((r) => r.id === roomId);
-                    if (matchedRoom) setSelectedRoom(matchedRoom);
+                    if (matchedRoom) openRoom(matchedRoom);
                   }}
                 >
                   <Image
@@ -199,7 +224,7 @@ export default function DesignFeed() {
                   category={pageName(room.pageId)}
                   variant="single"
                   featured
-                  onClick={() => setSelectedRoom(room)}
+                  onClick={() => openRoom(room)}
                 />
               ))}
             </div>
@@ -209,7 +234,7 @@ export default function DesignFeed() {
             <FeedGridBlocks
               blocks={gridBlocks}
               getCategory={(room) => pageName(room.pageId)}
-              onSelectRoom={setSelectedRoom}
+              onSelectRoom={openRoom}
             />
           ) : featuredRooms.length === 0 ? (
             <motion.div
@@ -223,7 +248,7 @@ export default function DesignFeed() {
         </section>
       </div>
 
-      <ImageModal room={selectedRoom} onClose={() => setSelectedRoom(null)} />
+      <ImageModal room={selectedRoom} onClose={closeRoom} />
     </>
   );
 }

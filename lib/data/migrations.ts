@@ -1,4 +1,4 @@
-import { DEMO_ROOMS } from '@/data/demoData';
+import { DEMO_HOME_SLIDES, DEMO_ROOMS, DEMO_ROOMS_PER_PAGE, DEMO_STYLE_PAGE_IDS } from '@/data/demoData';
 import { ENABLE_MOCK_DATA } from '@/lib/env';
 import { roomToPortfolioImages } from '@/lib/roomImages';
 import { ABOUT_MENU_HREF } from '@/lib/menu';
@@ -19,6 +19,18 @@ const LEGACY_DEMO_DESCRIPTIONS = new Set([
 const REMOVED_UNSPLASH_PHOTOS: Record<string, string> = {
   'photo-1588854337221-4cf1efa1c3fe': 'photo-1497366216548-37526070297c',
   'photo-1519087926938-39543a358456': 'photo-1472099645785-5658abf4ff4e',
+  // Invalid / removed IDs previously used in demoData mock seed
+  'photo-1616486338812-3ada6874e4b0': 'photo-1618221195710-dd6b41faaea6',
+  'photo-1615874952477-0d0c4e2d0b0e': 'photo-1586023492125-27b2c045efd7',
+  'photo-1616136216624-2e6b0c0b0b0e': 'photo-1615529328331-f8917597711f',
+  'photo-1618220179428-22790a81fe7e': 'photo-1583847268964-b28dc8f51f92',
+  'photo-1615874694520-474823129e83': 'photo-1600585154340-be6161a56a0c',
+  'photo-1616485669229-2f6c0d0b0b0e': 'photo-1502672260266-1c1ef2d93688',
+  'photo-1600566753190-17f95baa1063': 'photo-1522708323590-d24dbb6b0267',
+  'photo-1600573472591-4b0b0b0b0b0e': 'photo-1484154218962-a197022b5858',
+  'photo-1600607687939-26a4b2e2b2b2': 'photo-1512917774080-9991f1c4c750',
+  'photo-1600047509807-ba8f88d2a0b0': 'photo-1600607687644-c7171b42498f',
+  'photo-1600210492496-724fe5c67fb1': 'photo-1600585154526-990dced4db0d',
 };
 
 export function fixRemovedUnsplashUrl(url: string): string {
@@ -50,6 +62,12 @@ export function migrateBranding(raw: Partial<Branding>): Branding {
   if (!raw.teamSectionDescription?.trim()) {
     merged.teamSectionDescription = DEFAULT_BRANDING.teamSectionDescription;
   }
+  if (raw.iconMode !== 'text' && raw.iconMode !== 'logo') {
+    merged.iconMode = DEFAULT_BRANDING.iconMode;
+  }
+  if (typeof raw.logoUrl !== 'string') {
+    merged.logoUrl = DEFAULT_BRANDING.logoUrl;
+  }
   if (!raw.homeLabel?.trim()) {
     merged.homeLabel = DEFAULT_BRANDING.homeLabel;
   }
@@ -58,6 +76,24 @@ export function migrateBranding(raw: Partial<Branding>): Branding {
   }
   if (!raw.hqAddressLine2?.trim()) {
     merged.hqAddressLine2 = DEFAULT_BRANDING.hqAddressLine2;
+  }
+  if (typeof raw.hqAddressMapUrl !== 'string') {
+    merged.hqAddressMapUrl = DEFAULT_BRANDING.hqAddressMapUrl;
+  }
+  if (typeof raw.hqAddress2Enabled !== 'boolean') {
+    merged.hqAddress2Enabled = DEFAULT_BRANDING.hqAddress2Enabled;
+  }
+  if (typeof raw.hqAddress2Line1 !== 'string') {
+    merged.hqAddress2Line1 = DEFAULT_BRANDING.hqAddress2Line1;
+  }
+  if (typeof raw.hqAddress2Line2 !== 'string') {
+    merged.hqAddress2Line2 = DEFAULT_BRANDING.hqAddress2Line2;
+  }
+  if (typeof raw.hqAddress2MapUrl !== 'string') {
+    merged.hqAddress2MapUrl = DEFAULT_BRANDING.hqAddress2MapUrl;
+  }
+  if (!raw.contactHqLabel?.trim() || raw.contactHqLabel === 'สตูดิโอสำนักงานใหญ่') {
+    merged.contactHqLabel = DEFAULT_BRANDING.contactHqLabel;
   }
   if (!raw.contactHeroTitle?.trim()) {
     merged.contactHeroTitle = DEFAULT_BRANDING.contactHeroTitle;
@@ -73,9 +109,6 @@ export function migrateBranding(raw: Partial<Branding>): Branding {
   }
   if (!raw.contactNoChannels?.trim()) {
     merged.contactNoChannels = DEFAULT_BRANDING.contactNoChannels;
-  }
-  if (!raw.contactHqLabel?.trim()) {
-    merged.contactHqLabel = DEFAULT_BRANDING.contactHqLabel;
   }
   if (!raw.contactHoursTitle?.trim()) {
     merged.contactHoursTitle = DEFAULT_BRANDING.contactHoursTitle;
@@ -185,6 +218,81 @@ export function syncDemoRoomShowcaseContent(rooms: Room[]): { rooms: Room[]; cha
   });
 
   return { rooms: next, changed };
+}
+
+function demoRoomNeedsRefresh(stored: Room, canonical: Room): boolean {
+  return (
+    stored.pageId !== canonical.pageId ||
+    stored.imageUrl !== canonical.imageUrl ||
+    JSON.stringify(stored.imageUrls) !== JSON.stringify(canonical.imageUrls) ||
+    JSON.stringify(stored.images) !== JSON.stringify(canonical.images)
+  );
+}
+
+/** เติม/อัปเดตการ์ด mock ให้ครบ DEMO_ROOMS_PER_PAGE ต่อเมนู — แก้ localStorage เก่าที่มีแค่ 2–6 ใบ */
+export function syncDemoRoomCatalog(rooms: Room[]): { rooms: Room[]; changed: boolean } {
+  if (!ENABLE_MOCK_DATA) return { rooms, changed: false };
+
+  const nonDemo = rooms.filter((room) => !room.id.startsWith('demo_'));
+  const storedDemoById = new Map(
+    rooms.filter((room) => room.id.startsWith('demo_')).map((room) => [room.id, room]),
+  );
+
+  let changed = storedDemoById.size !== DEMO_ROOMS.length;
+  const nextDemo = DEMO_ROOMS.map((canonical) => {
+    const stored = storedDemoById.get(canonical.id);
+    if (!stored) {
+      changed = true;
+      return { ...canonical };
+    }
+    if (demoRoomNeedsRefresh(stored, canonical)) {
+      changed = true;
+      return { ...canonical };
+    }
+    return stored;
+  });
+
+  for (const id of storedDemoById.keys()) {
+    if (!DEMO_ROOM_BY_ID.has(id)) {
+      changed = true;
+    }
+  }
+
+  const perPage = DEMO_STYLE_PAGE_IDS.map(
+    (pageId) => nextDemo.filter((room) => room.pageId === pageId).length,
+  );
+  if (perPage.some((count) => count !== DEMO_ROOMS_PER_PAGE)) {
+    changed = true;
+  }
+
+  return { rooms: [...nonDemo, ...nextDemo], changed };
+}
+
+/** เติมสไลด์หน้าแรกจาก mock ที่ยังไม่มีใน localStorage */
+export function syncDemoHomeSlides(homeSlides: HomeSlide[]): {
+  homeSlides: HomeSlide[];
+  changed: boolean;
+} {
+  if (!ENABLE_MOCK_DATA) return { homeSlides, changed: false };
+
+  const nonDemo = homeSlides.filter((slide) => !slide.id.startsWith('slide_demo_'));
+  const storedById = new Map(homeSlides.map((slide) => [slide.id, slide]));
+  let changed = false;
+
+  const nextDemo = DEMO_HOME_SLIDES.map((canonical) => {
+    const stored = storedById.get(canonical.id);
+    if (!stored || stored.imageUrl !== canonical.imageUrl) {
+      changed = true;
+      return { ...canonical };
+    }
+    return stored;
+  });
+
+  if (storedById.size !== nextDemo.length + nonDemo.length) {
+    changed = true;
+  }
+
+  return { homeSlides: [...nonDemo, ...nextDemo], changed };
 }
 
 export function uniqueSlug(base: string, existing: StylePage[]): string {

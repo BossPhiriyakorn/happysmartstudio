@@ -12,6 +12,7 @@ import { collectKeywordCatalog, roomMatchesSearch } from '@/lib/search';
 import { getFeaturedRooms } from '@/lib/featuredRooms';
 import { buildShuffledFeedBlocks } from '@/lib/feedLayout';
 import { PAGE_BLEED, PAGE_BLEED_INSET, PAGE_HERO_PADDING_TOP, PAGE_SHELL } from '@/lib/pageLayout';
+import { useRoomCardDeepLink } from '@/hooks/useRoomCardDeepLink';
 
 interface StylePageProps {
   title: string;
@@ -29,6 +30,11 @@ export default function StylePage({ title, description, pageId, rooms }: StylePa
   );
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { openRoom, closeRoom } = useRoomCardDeepLink({
+    rooms,
+    setSelectedRoom,
+    pageId,
+  });
   const pageRooms = useMemo(
     () => rooms.filter((room) => room.pageId === pageId),
     [rooms, pageId],
@@ -109,7 +115,7 @@ export default function StylePage({ title, description, pageId, rooms }: StylePa
                     category={title}
                     variant="single"
                     featured
-                    onClick={() => setSelectedRoom(room)}
+                    onClick={() => openRoom(room)}
                   />
                 ))}
               </div>
@@ -119,7 +125,7 @@ export default function StylePage({ title, description, pageId, rooms }: StylePa
               <FeedGridBlocks
                 blocks={gridBlocks}
                 getCategory={() => title}
-                onSelectRoom={setSelectedRoom}
+                onSelectRoom={openRoom}
               />
             )}
           </div>
@@ -127,7 +133,7 @@ export default function StylePage({ title, description, pageId, rooms }: StylePa
       </section>
 
       {/* Modal */}
-      <ImageModal room={selectedRoom} onClose={() => setSelectedRoom(null)} />
+      <ImageModal room={selectedRoom} onClose={closeRoom} />
     </div>
   );
 }

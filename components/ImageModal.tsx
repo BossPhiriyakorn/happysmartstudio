@@ -4,15 +4,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
-import { X, ArrowRight, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { X, ArrowRight, ChevronLeft, ChevronRight, ZoomIn, Share2 } from 'lucide-react';
 import { Room } from '@/types/content';
-import Link from 'next/link';
+import ContactCtaButton from '@/components/ContactCtaButton';
 import { useApp } from '@/components/AppContext';
 import { aspectRatioClass } from '@/lib/imageCrop';
 import { shouldBypassImageOptimizer } from '@/lib/imageDisplay';
 import { aspectRatioShape, roomToPortfolioImages } from '@/lib/roomImages';
 import HotspotOverlay from '@/components/HotspotOverlay';
 import { trackCardView } from '@/lib/analytics/track';
+import { shareRoomCard, type RoomShareResult } from '@/lib/roomShare';
 
 interface ImageModalProps {
   room: Room | null;
@@ -28,6 +29,8 @@ export default function ImageModal({ room, onClose }: ImageModalProps) {
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<RoomShareResult | null>(null);
+  const shareFeedbackTimer = useRef<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const lightboxTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -63,8 +66,32 @@ export default function ImageModal({ room, onClose }: ImageModalProps) {
       setCurrentIndex(0);
       setActiveHotspot(null);
       setLightboxOpen(false);
+      setShareFeedback(null);
     }, 0);
     return () => clearTimeout(timer);
+  }, [room]);
+
+  useEffect(() => {
+    return () => {
+      if (shareFeedbackTimer.current != null) {
+        window.clearTimeout(shareFeedbackTimer.current);
+      }
+    };
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    if (!room) return;
+    const result = await shareRoomCard(room);
+    if (result === 'failed') return;
+
+    setShareFeedback(result);
+    if (shareFeedbackTimer.current != null) {
+      window.clearTimeout(shareFeedbackTimer.current);
+    }
+    shareFeedbackTimer.current = window.setTimeout(() => {
+      setShareFeedback(null);
+      shareFeedbackTimer.current = null;
+    }, 2200);
   }, [room]);
 
   const handlePrev = useCallback(() => {
@@ -344,17 +371,32 @@ export default function ImageModal({ room, onClose }: ImageModalProps) {
                   </motion.div>
                 </div>
 
-                <div className="pt-3 sm:pt-4 border-t border-gray-100 shrink-0 bg-white">
-                  <Link href="/contact" onClick={onClose} className="block w-full">
+                <div className="pt-3 sm:pt-4 border-t border-gray-100 shrink-0 bg-white space-y-2 sm:space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <motion.button
+                      type="button"
                       whileHover={{ scale: 0.98 }}
                       whileTap={{ scale: 0.96 }}
-                      className="w-full bg-black text-white flex items-center justify-between px-5 py-3.5 sm:px-6 sm:py-4 text-sm font-semibold tracking-widest uppercase group"
+                      onClick={() => void handleShare()}
+                      className="w-full sm:w-auto sm:min-w-[9rem] border border-gray-200 text-black flex items-center justify-center gap-2 px-5 py-3.5 sm:py-4 text-sm font-semibold tracking-wide"
+                      aria-label={t('modal.share')}
                     >
-                      {t('modal.consultNow')}
-                      <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
+                      <Share2 size={16} strokeWidth={2} />
+                      {shareFeedback === 'copied'
+                        ? t('modal.shareCopied')
+                        : shareFeedback === 'shared'
+                          ? t('modal.shareShared')
+                          : t('modal.share')}
                     </motion.button>
-                  </Link>
+                    <ContactCtaButton
+                      whileHover={{ scale: 0.98 }}
+                      whileTap={{ scale: 0.96 }}
+                      className="w-full sm:flex-1 min-w-0 bg-black text-white flex items-center justify-between px-5 py-3.5 sm:px-6 sm:py-4 text-sm font-semibold tracking-widest uppercase group hover:bg-neutral-800"
+                    >
+                      <span>{t('modal.consultNow')}</span>
+                      <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform shrink-0" />
+                    </ContactCtaButton>
+                  </div>
                 </div>
               </div>
             </motion.div>

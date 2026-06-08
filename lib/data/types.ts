@@ -8,10 +8,16 @@ import type {
   TeamMember,
 } from '@/types/content';
 
+export type BrandIconMode = 'text' | 'logo';
+
 /** Site identity / copy — maps to `site_branding` */
 export interface Branding {
   name: string;
   homeLabel: string;
+  /** Header/footer square icon: text initials or uploaded logo */
+  iconMode: BrandIconMode;
+  /** Cropped logo image when iconMode is 'logo' */
+  logoUrl: string;
   shortName: string;
   introKicker: string;
   introTitle: string;
@@ -23,6 +29,12 @@ export interface Branding {
   teamSectionDescription: string;
   hqAddressLine1: string;
   hqAddressLine2: string;
+  /** Google Maps / share link for address 1 */
+  hqAddressMapUrl: string;
+  hqAddress2Enabled: boolean;
+  hqAddress2Line1: string;
+  hqAddress2Line2: string;
+  hqAddress2MapUrl: string;
   footerTitle: string;
   footerDescription: string;
   /** หน้าติดต่อ — เก็บใน DB แก้ไขได้ */

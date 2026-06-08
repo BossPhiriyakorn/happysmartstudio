@@ -47,7 +47,7 @@ export default function ContactChannelPicker({ open, onClose, options }: Contact
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[220] flex items-end sm:items-center justify-center p-4 sm:p-6">
           <motion.button
             type="button"
             aria-label={t('common.close')}

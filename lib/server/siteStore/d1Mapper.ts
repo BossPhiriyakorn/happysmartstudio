@@ -30,10 +30,19 @@ function aspectRatio(value: string | null | undefined): ImageAspectRatio {
   return allowed.includes(value as ImageAspectRatio) ? (value as ImageAspectRatio) : '4:3';
 }
 
+function bool(row: D1Row, key: string, fallback = false): boolean {
+  const v = row[key];
+  if (typeof v === 'number') return v !== 0;
+  if (typeof v === 'boolean') return v;
+  return fallback;
+}
+
 function rowToBranding(row: D1Row): Branding {
   return {
     name: str(row, 'name'),
     homeLabel: str(row, 'home_label'),
+    iconMode: str(row, 'icon_mode', 'text') === 'logo' ? 'logo' : 'text',
+    logoUrl: str(row, 'logo_url'),
     shortName: str(row, 'short_name'),
     introKicker: str(row, 'intro_kicker'),
     introTitle: str(row, 'intro_title'),
@@ -45,6 +54,11 @@ function rowToBranding(row: D1Row): Branding {
     teamSectionDescription: str(row, 'team_section_description'),
     hqAddressLine1: str(row, 'hq_address_line1'),
     hqAddressLine2: str(row, 'hq_address_line2'),
+    hqAddressMapUrl: str(row, 'hq_address_map_url'),
+    hqAddress2Enabled: bool(row, 'hq_address2_enabled'),
+    hqAddress2Line1: str(row, 'hq_address2_line1'),
+    hqAddress2Line2: str(row, 'hq_address2_line2'),
+    hqAddress2MapUrl: str(row, 'hq_address2_map_url'),
     footerTitle: str(row, 'footer_title'),
     footerDescription: str(row, 'footer_description'),
     contactHeroTitle: str(row, 'contact_hero_title'),
@@ -298,17 +312,20 @@ export function buildSaveSnapshotBatch(
     db
       .prepare(
         `INSERT INTO site_branding (
-          site_id, name, home_label, short_name, intro_kicker, intro_title,
+          site_id, name, home_label, icon_mode, logo_url, short_name, intro_kicker, intro_title,
           hero_title, hero_description, studio_badge,
           feed_section_title, team_section_title, team_section_description,
-          hq_address_line1, hq_address_line2,
+          hq_address_line1, hq_address_line2, hq_address_map_url,
+          hq_address2_enabled, hq_address2_line1, hq_address2_line2, hq_address2_map_url,
           footer_title, footer_description,
           contact_hero_title, contact_hero_desc,
           contact_channels_title, contact_channels_desc, contact_no_channels,
           contact_hq_label, contact_hours_title, contact_hours_desc
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(site_id) DO UPDATE SET
-          name=excluded.name, home_label=excluded.home_label, short_name=excluded.short_name,
+          name=excluded.name, home_label=excluded.home_label,
+          icon_mode=excluded.icon_mode, logo_url=excluded.logo_url,
+          short_name=excluded.short_name,
           intro_kicker=excluded.intro_kicker, intro_title=excluded.intro_title,
           hero_title=excluded.hero_title, hero_description=excluded.hero_description,
           studio_badge=excluded.studio_badge,
@@ -316,6 +333,10 @@ export function buildSaveSnapshotBatch(
           team_section_title=excluded.team_section_title,
           team_section_description=excluded.team_section_description,
           hq_address_line1=excluded.hq_address_line1, hq_address_line2=excluded.hq_address_line2,
+          hq_address_map_url=excluded.hq_address_map_url,
+          hq_address2_enabled=excluded.hq_address2_enabled,
+          hq_address2_line1=excluded.hq_address2_line1, hq_address2_line2=excluded.hq_address2_line2,
+          hq_address2_map_url=excluded.hq_address2_map_url,
           footer_title=excluded.footer_title, footer_description=excluded.footer_description,
           contact_hero_title=excluded.contact_hero_title, contact_hero_desc=excluded.contact_hero_desc,
           contact_channels_title=excluded.contact_channels_title,
@@ -330,6 +351,8 @@ export function buildSaveSnapshotBatch(
         b,
         branding.name,
         branding.homeLabel,
+        branding.iconMode,
+        branding.logoUrl,
         branding.shortName,
         branding.introKicker,
         branding.introTitle,
@@ -341,6 +364,11 @@ export function buildSaveSnapshotBatch(
         branding.teamSectionDescription,
         branding.hqAddressLine1,
         branding.hqAddressLine2,
+        branding.hqAddressMapUrl,
+        branding.hqAddress2Enabled ? 1 : 0,
+        branding.hqAddress2Line1,
+        branding.hqAddress2Line2,
+        branding.hqAddress2MapUrl,
         branding.footerTitle,
         branding.footerDescription,
         branding.contactHeroTitle,

@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { useApp } from '@/components/AppContext';
 import { usePreviewPathname } from '@/components/editPreviewContext';
 import ContactCtaButton from '@/components/ContactCtaButton';
+import BrandIcon from '@/components/BrandIcon';
 
 /** island ลอย + margin บน — ใช้กับ sticky ด้านล่าง header ตอน scroll */
 export const HEADER_ISLAND_OFFSET = '5.5rem';
@@ -17,7 +18,24 @@ export const HEADER_ISLAND_OFFSET = '5.5rem';
 export const MAIN_HEADER_OFFSET_CLASS = 'pt-20 md:pt-[5.75rem]';
 
 const ISLAND_MAX_WIDTH = 1280;
-const SCROLL_THRESHOLD = 16;
+const SCROLL_THRESHOLD_ON = 20;
+const SCROLL_THRESHOLD_OFF = 6;
+/** Scroll distance (px) for contact CTA square → pill morph on desktop */
+const CONTACT_MORPH_PX = 88;
+const CONTACT_RADIUS_MAX = 22;
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
+/** Smooth ease for scroll → morph target (no hard linear steps) */
+function smoothstep(t: number) {
+  return t * t * (3 - 2 * t);
+}
+
+function contactMorphFromScroll(y: number) {
+  return smoothstep(clamp01(y / CONTACT_MORPH_PX));
+}
 
 function subscribeViewport(onChange: () => void) {
   window.addEventListener('resize', onChange, { passive: true });
@@ -30,7 +48,20 @@ function getViewportWidth() {
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  /** Mobile menu panel still animating closed — keep card corners until exit finishes */
+  const [menuSheetMounted, setMenuSheetMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const contactMorphTarget = useMotionValue(contactMorphFromScroll(0));
+  const contactMorph = useSpring(contactMorphTarget, {
+    stiffness: 55,
+    damping: 14,
+    mass: 0.95,
+    restDelta: 0.0008,
+  });
+  const contactBorderRadius = useTransform(contactMorph, (v) => v * CONTACT_RADIUS_MAX);
+  const contactPaddingY = useTransform(contactMorph, (v) => 12 - v * 2);
+  const contactPaddingX = useTransform(contactMorph, (v) => 20 - v * 4);
+  const contactFontSize = useTransform(contactMorph, (v) => `${0.75 - v * 0.125}rem`);
   const viewportWidth = useSyncExternalStore(
     subscribeViewport,
     getViewportWidth,
@@ -55,11 +86,23 @@ export default function Header() {
   }
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
+    const onScroll = () => {
+      const y = window.scrollY;
+      contactMorphTarget.set(contactMorphFromScroll(y));
+      setScrolled((prev) => {
+        if (!prev && y > SCROLL_THRESHOLD_ON) return true;
+        if (prev && y < SCROLL_THRESHOLD_OFF) return false;
+        return prev;
+      });
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [contactMorphTarget]);
+
+  useEffect(() => {
+    if (isOpen) setMenuSheetMounted(true);
+  }, [isOpen]);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
@@ -70,9 +113,24 @@ export default function Header() {
 
   const floated = scrolled;
   const compact = floated && !isOpen;
+  const contactBtnMotionStyle = {
+    borderRadius: contactBorderRadius,
+    paddingTop: contactPaddingY,
+    paddingBottom: contactPaddingY,
+    paddingLeft: contactPaddingX,
+    paddingRight: contactPaddingX,
+    fontSize: contactFontSize,
+  };
   const islandWidth = Math.min(ISLAND_MAX_WIDTH, viewportWidth - 16);
   const barMaxWidth = floated ? islandWidth : viewportWidth;
-  const barRadius = floated ? (isOpen ? 28 : 9999) : 0;
+  const isMobile = viewportWidth < 768;
+  const mobileMenuCard = isMobile && floated && (isOpen || menuSheetMounted);
+  const barRadius = !floated ? 0 : mobileMenuCard ? 16 : 9999;
+  /** Snap radius on mobile island — avoid pill↔card morph through a circle */
+  const barTransition =
+    isMobile && floated
+      ? 'max-width,background-color,box-shadow,border-color'
+      : 'max-width,border-radius,background-color,box-shadow,border-color';
 
   return (
     <div
@@ -84,10 +142,11 @@ export default function Header() {
       }}
     >
       <div
-        className="pointer-events-auto w-full overflow-hidden backdrop-blur-xl transition-[max-width,border-radius,background-color,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        className="pointer-events-auto w-full overflow-hidden backdrop-blur-xl duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
         style={{
           maxWidth: barMaxWidth,
           borderRadius: barRadius,
+          transitionProperty: barTransition,
           backgroundColor: floated ? 'rgba(255,255,255,0.94)' : 'rgba(255,255,255,0.9)',
           boxShadow: floated
             ? '0 12px 40px -8px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.04)'
@@ -117,15 +176,12 @@ export default function Header() {
             }}
             className="flex items-center gap-2 min-w-0"
           >
-            <motion.div
-              className={`bg-black text-white flex items-center justify-center font-bold tracking-tighter leading-none shrink-0 ${
-                floated ? 'w-8 h-8 sm:w-9 sm:h-9 text-base sm:text-lg' : 'w-8 h-8 text-lg'
-              }`}
-              animate={{ scale: compact ? 0.92 : 1 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-            >
-              {branding.shortName}
-            </motion.div>
+            <BrandIcon
+              branding={branding}
+              variant="header"
+              floated={floated}
+              compact={compact}
+            />
             <span
               className={`font-semibold tracking-tight truncate transition-all duration-300 ease-out ${
                 floated
@@ -160,11 +216,8 @@ export default function Header() {
               );
             })}
             <ContactCtaButton
-              className={`bg-black text-white uppercase tracking-widest font-semibold hover:bg-neutral-800 transition-all duration-300 shrink-0 ${
-                floated
-                  ? 'text-[10px] lg:text-xs px-4 lg:px-5 py-2 lg:py-2.5 rounded-full'
-                  : 'text-xs px-5 py-3'
-              }`}
+              style={contactBtnMotionStyle}
+              className="bg-black text-white uppercase tracking-widest font-semibold hover:bg-neutral-800 shrink-0 inline-flex items-center justify-center lg:text-xs"
             >
               {contactLabel}
             </ContactCtaButton>
@@ -183,7 +236,7 @@ export default function Header() {
           </button>
         </div>
 
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} onExitComplete={() => setMenuSheetMounted(false)}>
           {isOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
@@ -221,8 +274,8 @@ export default function Header() {
                 <div className={floated ? 'pt-3 pb-1' : 'pt-6 pb-2'}>
                   <ContactCtaButton
                     onClick={closeMenu}
-                    className={`block w-full bg-black text-white text-center font-medium tracking-wide ${
-                      floated ? 'py-3.5 rounded-full text-sm font-semibold' : 'py-4 rounded-none'
+                    className={`block w-full bg-black text-white text-center font-medium tracking-wide transition-[border-radius,padding,font-size,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                      floated ? 'py-3.5 rounded-lg text-sm font-semibold' : 'py-4 rounded-none'
                     }`}
                   >
                     {contactLabel}

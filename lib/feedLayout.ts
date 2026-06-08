@@ -1,8 +1,9 @@
 import type { Room } from '@/types/content';
+import { roomCoverAspectRatio } from '@/lib/roomImages';
 
 export type GridBlock =
   | { type: 'single'; item: Room }
-  | { type: 'grid-2'; items: Room[] };
+  | { type: 'grid-2'; items: [Room, Room]; aspectRatio: ReturnType<typeof roomCoverAspectRatio> };
 
 export function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -13,27 +14,47 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-/** สลับลำดับแล้วจัดเป็นบล็อก single / grid-2 แบบสุ่ม */
-export function generateGridBlocks(items: Room[]): GridBlock[] {
-  const blocks: GridBlock[] = [];
-  let i = 0;
+export function roomsShareCoverAspect(a: Room, b: Room): boolean {
+  return roomCoverAspectRatio(a) === roomCoverAspectRatio(b);
+}
 
-  while (i < items.length) {
-    const remaining = items.length - i;
-    const choices: ('single' | 'grid-2')[] = ['single'];
-    if (remaining >= 2) {
-      choices.push('grid-2');
-    }
-
-    const choice = choices[Math.floor(Math.random() * choices.length)];
-    if (choice === 'single') {
-      blocks.push({ type: 'single', item: items[i] });
-      i += 1;
-    } else {
-      blocks.push({ type: 'grid-2', items: [items[i], items[i + 1]] });
-      i += 2;
+function findPairPartner(items: Room[], anchor: Room, startIndex: number): number {
+  const targetAspect = roomCoverAspectRatio(anchor);
+  for (let j = startIndex; j < items.length; j++) {
+    if (roomCoverAspectRatio(items[j]) === targetAspect) {
+      return j;
     }
   }
+  return -1;
+}
+
+/**
+ * สลับลำดับแล้วจัดเป็นบล็อก single / grid-2
+ * รูปคู่ต้องมีอัตราส่วนปกเท่ากัน — ใช้กฎเดียวกันทุก viewport (มือถือ / แท็บเลต / PC)
+ */
+export function generateGridBlocks(items: Room[]): GridBlock[] {
+  const blocks: GridBlock[] = [];
+  const remaining = [...items];
+
+  while (remaining.length > 0) {
+    const current = remaining.shift()!;
+    const partnerIndex = findPairPartner(remaining, current, 0);
+    const canPair = partnerIndex >= 0;
+    const preferPair = canPair && Math.random() < 0.5;
+
+    if (preferPair) {
+      const partner = remaining.splice(partnerIndex, 1)[0];
+      blocks.push({
+        type: 'grid-2',
+        items: [current, partner],
+        aspectRatio: roomCoverAspectRatio(current),
+      });
+      continue;
+    }
+
+    blocks.push({ type: 'single', item: current });
+  }
+
   return blocks;
 }
 

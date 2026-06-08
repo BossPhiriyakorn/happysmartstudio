@@ -10,6 +10,13 @@ import { CONTACT_CHANNEL_LABELS } from '@/lib/contactLabels';
 import { getContactChannelOptions, openContactChannel } from '@/lib/contactChannels';
 import { shouldBypassImageOptimizer } from '@/lib/imageDisplay';
 import { PAGE_BLEED, PAGE_BLEED_INSET, PAGE_HERO_PADDING_TOP, PAGE_SHELL } from '@/lib/pageLayout';
+import StudioAddressEntry from '@/components/StudioAddressEntry';
+import {
+  hasStudioAddress,
+  primaryStudioAddress,
+  secondaryStudioAddress,
+  STUDIO_ADDRESS_2_LABEL,
+} from '@/lib/studioAddress';
 
 const CHANNEL_ICONS = {
   line: MessageCircle,
@@ -138,13 +145,32 @@ export default function ContactPage() {
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">
               {branding.contactHqLabel}
             </h3>
-            <div className="flex items-start gap-4 text-base text-gray-600 mb-8">
-              <MapPin size={24} className="text-black shrink-0 mt-0.5" />
-              <span>
-                {branding.hqAddressLine1}
-                <br />
-                {branding.hqAddressLine2}
-              </span>
+            <div className="space-y-6 mb-8">
+              {hasStudioAddress(primaryStudioAddress(branding)) && (
+                <div className="flex items-start gap-4 text-base text-gray-600">
+                  <MapPin size={24} className="text-black shrink-0 mt-0.5" />
+                  <StudioAddressEntry
+                    address={primaryStudioAddress(branding)}
+                    className="text-base text-gray-600 not-italic leading-relaxed"
+                    linkClassName="hover:text-black transition-colors underline-offset-2 hover:underline"
+                  />
+                </div>
+              )}
+              {branding.hqAddress2Enabled && hasStudioAddress(secondaryStudioAddress(branding)) && (
+                <div className="flex items-start gap-4 text-base text-gray-600 pt-2 border-t border-gray-100">
+                  <MapPin size={24} className="text-black shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                      {STUDIO_ADDRESS_2_LABEL}
+                    </p>
+                    <StudioAddressEntry
+                      address={secondaryStudioAddress(branding)}
+                      className="text-base text-gray-600 not-italic leading-relaxed"
+                      linkClassName="hover:text-black transition-colors underline-offset-2 hover:underline"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="bg-gray-50 border border-gray-100 p-6 md:p-8">
               <h4 className="font-semibold text-lg tracking-tight mb-2">{branding.contactHoursTitle}</h4>

@@ -1,13 +1,20 @@
 'use client';
 
 import { useMemo } from 'react';
-import Link from 'next/link';
 import { useApp } from '@/components/AppContext';
 import { CONTACT_CHANNEL_LABELS } from '@/lib/contactLabels';
 import { getContactChannelOptions } from '@/lib/contactChannels';
+import BrandIcon from '@/components/BrandIcon';
+import StudioAddressEntry from '@/components/StudioAddressEntry';
+import {
+  hasStudioAddress,
+  primaryStudioAddress,
+  secondaryStudioAddress,
+  STUDIO_ADDRESS_2_LABEL,
+} from '@/lib/studioAddress';
 
 export default function Footer() {
-  const { branding, contactChannels, menuLinks, t } = useApp();
+  const { branding, contactChannels, t } = useApp();
   const year = new Date().getFullYear();
 
   const channels = useMemo(
@@ -15,21 +22,23 @@ export default function Footer() {
     [contactChannels],
   );
 
-  const styleLinks = menuLinks.filter(
-    (link) => link.pageId && link.href !== '/' && link.href !== '/contact',
-  );
+  const primaryAddress = primaryStudioAddress(branding);
+  const secondaryAddress = secondaryStudioAddress(branding);
+  const showPrimary = hasStudioAddress(primaryAddress);
+  const showSecondary = branding.hqAddress2Enabled && hasStudioAddress(secondaryAddress);
 
   return (
-    <footer className="bg-black text-white px-6 py-16 flex-shrink-0 mt-auto">
-      <div className="max-w-7xl mx-auto w-full flex flex-col gap-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
+    <footer className="bg-black text-white px-5 py-10 md:px-6 md:py-16 flex-shrink-0 mt-auto">
+      <div className="max-w-7xl mx-auto w-full flex flex-col gap-8 md:gap-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-8 md:gap-10 items-start">
           
-          {/* Brand Panel */}
-          <div>
-            <div className="w-10 h-10 bg-white text-black flex items-center justify-center font-bold tracking-tighter text-xl leading-none pt-0.5 mb-6">
-              {branding.shortName}
+          {/* Brand Panel — full width on mobile, first column on desktop */}
+          <div className="col-span-2 md:col-span-1">
+            <div className="flex items-center gap-2.5 mb-4 md:mb-6 min-w-0">
+              <BrandIcon branding={branding} variant="footer" />
+              <span className="font-semibold tracking-tight text-base md:text-lg truncate">{branding.name}</span>
             </div>
-            <h2 className="text-2xl font-semibold tracking-tight mb-3 whitespace-pre-line">
+            <h2 className="text-xl md:text-2xl font-semibold tracking-tight mb-2 md:mb-3 whitespace-pre-line">
               {branding.footerTitle}
             </h2>
             <p className="text-gray-400 text-sm max-w-xs leading-relaxed">
@@ -37,23 +46,31 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Quick Links */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xs uppercase font-bold tracking-widest text-gray-500 mb-3">{t('footer.coreStyles')}</h3>
-            {styleLinks.map((link) => (
-              <Link 
-                key={link.href} 
-                href={link.href} 
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                {link.name}
-              </Link>
-            ))}
+          {/* Studio address */}
+          <div className="flex flex-col gap-3 md:gap-4">
+            <h3 className="text-[10px] md:text-xs uppercase font-bold tracking-widest text-gray-500 mb-0 md:mb-1">
+              {branding.contactHqLabel}
+            </h3>
+            {showPrimary ? (
+              <StudioAddressEntry address={primaryAddress} />
+            ) : (
+              <p className="text-sm text-gray-500">—</p>
+            )}
+            {showSecondary && (
+              <div className="flex flex-col gap-1.5 pt-1 border-t border-gray-800/80">
+                <p className="text-[10px] md:text-xs uppercase font-bold tracking-widest text-gray-500">
+                  {STUDIO_ADDRESS_2_LABEL}
+                </p>
+                <StudioAddressEntry address={secondaryAddress} />
+              </div>
+            )}
           </div>
 
           {/* Contact Panel */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xs uppercase font-bold tracking-widest text-gray-500 mb-3">{t('footer.getInTouch')}</h3>
+          <div className="flex flex-col gap-2 md:gap-3">
+            <h3 className="text-[10px] md:text-xs uppercase font-bold tracking-widest text-gray-500 mb-1 md:mb-3">
+              {t('footer.getInTouch')}
+            </h3>
             {channels.length > 0 ? (
               channels.map((channel) => (
                 <a
@@ -67,7 +84,7 @@ export default function Footer() {
                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                     {channel.label}
                   </span>
-                  <span className="text-gray-400 group-hover:text-white transition-colors text-sm font-medium break-all">
+                  <span className="text-gray-400 group-hover:text-white transition-colors text-xs md:text-sm font-medium break-all leading-snug">
                     {channel.value}
                   </span>
                 </a>
@@ -79,8 +96,8 @@ export default function Footer() {
         </div>
         
         <div>
-          <div className="h-px w-full bg-gray-800 my-4" />
-          <div className="text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="h-px w-full bg-gray-800 my-2 md:my-4" />
+          <div className="text-[11px] md:text-xs text-gray-500 flex flex-col sm:flex-row justify-center sm:justify-between items-center text-center sm:text-left gap-2 sm:gap-4">
             <span>© {year} {branding.name} Architecture. {t('footer.copyright')}.</span>
             <span>{t('footer.tagline')}</span>
           </div>

@@ -17,10 +17,11 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { useApp } from '@/components/AppContext';
-import { Room, HomeSlide } from '@/types/content';
+import { Room } from '@/types/content';
 import Image from 'next/image';
 import PagePreview from '@/components/PagePreview';
 import { EditPreviewProvider } from '@/components/EditPreviewProvider';
+import { buildInspirationSlides, MAX_INSPIRATION_SLIDES } from '@/lib/homeInspirationSlides';
 import {
   buildEditPreviewDraft,
   resolvePreviewPageFromEditContext,
@@ -50,6 +51,7 @@ import { aspectRatioClass, formatImageSizeGuide, SLIDE_DEFAULT_ASPECT_RATIO } fr
 import { shouldBypassImageOptimizer } from '@/lib/imageDisplay';
 import { sanitizePhoneInput } from '@/lib/contactChannels';
 import { roomCoverAspectRatio } from '@/lib/roomImages';
+import BrandIcon from '@/components/BrandIcon';
 
 function PreviewPageButton({
   active,
@@ -78,11 +80,9 @@ export default function EditPage() {
     branding,
     stylePages,
     rooms,
-    homeSlides,
     contactChannels,
     contactLabel,
     updateBranding,
-    updateHomeSlides,
     addStylePage,
     updateStylePage,
     deleteStylePage,
@@ -161,23 +161,14 @@ export default function EditPage() {
   const [editingCard, setEditingCard] = useState<Room | null>(null);
   const [cardModalPageId, setCardModalPageId] = useState(stylePages[0]?.id || 'moderne');
 
-  // Home slides form
-  const [slidesForm, setSlidesForm] = useState<HomeSlide[]>(homeSlides);
-  const [newSlideTitle, setNewSlideTitle] = useState('');
-  const [newSlidePageId, setNewSlidePageId] = useState(stylePages[0]?.id || 'moderne');
-  const [slideCropOpen, setSlideCropOpen] = useState(false);
-
   const [teamCropOpen, setTeamCropOpen] = useState(false);
   const [teamCropTargetId, setTeamCropTargetId] = useState<string | null>(null);
+  const [brandLogoCropOpen, setBrandLogoCropOpen] = useState(false);
   const [newTeamForm, setNewTeamForm] = useState({ name: '', role: '', imageUrl: '' });
 
   React.useEffect(() => {
     setBrandForm(branding);
   }, [branding]);
-
-  React.useEffect(() => {
-    setSlidesForm(homeSlides);
-  }, [homeSlides]);
 
   React.useEffect(() => {
     setContactForm({
@@ -270,6 +261,11 @@ export default function EditPage() {
     }
     setTeamCropOpen(false);
     setTeamCropTargetId(null);
+  };
+
+  const handleBrandLogoCropComplete = (result: { url: string }) => {
+    setBrandForm((prev) => ({ ...prev, iconMode: 'logo', logoUrl: result.url }));
+    setBrandLogoCropOpen(false);
   };
 
   const saveBrandForm = (logAction: string, logDetail?: string) => {
@@ -423,45 +419,22 @@ export default function EditPage() {
 
   const handleSaveHomeSlides = (e: React.FormEvent) => {
     e.preventDefault();
-    updateHomeSlides(slidesForm);
     updateBranding({ ...brandForm, introTitle: brandForm.name });
-    logEdit('บันทึกสไลด์ & หัวข้อฟีด');
+    logEdit('บันทึกหัวข้อฟีด');
     void showSaveWithSync();
   };
 
-  const handleAddHomeSlide = (result: { url: string; aspectRatio: HomeSlide['aspectRatio'] }) => {
-    const title =
-      newSlideTitle.trim() ||
-      `${t('edit.homeSlides.slideTitle')} ${slidesForm.length + 1}`;
-    setSlidesForm((prev) => [
-      ...prev,
-      {
-        id: `slide_${Date.now()}`,
-        imageUrl: result.url,
-        title,
-        pageId: newSlidePageId,
-        aspectRatio: SLIDE_DEFAULT_ASPECT_RATIO,
-      },
-    ]);
-    setNewSlideTitle('');
-    setSlideCropOpen(false);
-    void showSaveWithSync();
-  };
-
-  const handleRemoveHomeSlide = (id: string) => {
-    setSlidesForm((prev) => prev.filter((s) => s.id !== id));
-  };
+  const inspirationSlidesPreview = useMemo(() => buildInspirationSlides(rooms), [rooms]);
 
   const previewDraft = useMemo(
     () =>
       buildEditPreviewDraft({
         brandForm,
-        slidesForm,
         contactForm,
         activeStyleMenuId,
         pageSettingsForm,
       }),
-    [brandForm, slidesForm, contactForm, activeStyleMenuId, pageSettingsForm],
+    [brandForm, contactForm, activeStyleMenuId, pageSettingsForm],
   );
 
   const contextPreviewPage = useMemo(
@@ -554,8 +527,8 @@ export default function EditPage() {
 
               {generalSelection === 'brand' && (
                 <form onSubmit={handleSaveGeneralBrand} className="space-y-4 max-w-lg">
-                  <SectionCard title="แบรนด์" description="ชื่อสตูดิโอและตัวย่อโลโก้ — ใช้ทั่วเว็บและอินโทร">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <SectionCard title="แบรนด์" description="ชื่อสตูดิโอและไอคอนใน Header — ใช้ทั่วเว็บและอินโทร">
+                    <div className="space-y-4">
                       <Field label="ชื่อสตูดิโอ" hint="ซิงค์กับหัวข้ออินโทรอัตโนมัติ">
                         <input
                           type="text"
@@ -568,16 +541,78 @@ export default function EditPage() {
                           required
                         />
                       </Field>
-                      <Field label="ตัวย่อโลโก้" hint="สูงสุด 5 ตัวอักษร">
-                        <input
-                          type="text"
-                          value={brandForm.shortName}
-                          onChange={(e) => setBrandForm((prev) => ({ ...prev, shortName: e.target.value }))}
-                          className={inputClass}
-                          maxLength={5}
-                          required
-                        />
+
+                      <Field label="รูปแบบไอคอน" hint="แสดงใน Header และ Footer">
+                        <div className="flex border border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() => setBrandForm((prev) => ({ ...prev, iconMode: 'text' }))}
+                            className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors ${
+                              brandForm.iconMode !== 'logo'
+                                ? 'bg-black text-white'
+                                : 'bg-white text-gray-600 hover:text-black'
+                            }`}
+                          >
+                            ตัวย่อ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBrandForm((prev) => ({ ...prev, iconMode: 'logo' }))}
+                            className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors ${
+                              brandForm.iconMode === 'logo'
+                                ? 'bg-black text-white'
+                                : 'bg-white text-gray-600 hover:text-black'
+                            }`}
+                          >
+                            โลโก้
+                          </button>
+                        </div>
                       </Field>
+
+                      {brandForm.iconMode === 'logo' ? (
+                        <Field label="รูปโลโก้" hint="อัตราส่วน 1:1 — ปรับขนาดให้พอดีกับกรอบไอคอนอัตโนมัติ">
+                          <div className="flex items-center gap-4">
+                            <div className="shrink-0 pointer-events-none">
+                              <BrandIcon branding={brandForm} variant="header" />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setBrandLogoCropOpen(true)}
+                                className="bg-gray-100 hover:bg-gray-200 text-black px-5 py-3 text-xs font-semibold uppercase tracking-widest transition-colors flex items-center gap-2 w-fit"
+                              >
+                                <Upload size={14} />
+                                {brandForm.logoUrl ? 'เปลี่ยนรูปโลโก้' : 'อัปโหลดโลโก้'}
+                              </button>
+                              {brandForm.logoUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => setBrandForm((prev) => ({ ...prev, logoUrl: '' }))}
+                                  className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 hover:text-red-600 transition-colors text-left"
+                                >
+                                  ลบรูปโลโก้
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </Field>
+                      ) : (
+                        <Field label="ตัวย่อโลโก้" hint="สูงสุด 5 ตัวอักษร">
+                          <div className="flex items-center gap-4">
+                            <div className="shrink-0 pointer-events-none">
+                              <BrandIcon branding={brandForm} variant="header" />
+                            </div>
+                            <input
+                              type="text"
+                              value={brandForm.shortName}
+                              onChange={(e) => setBrandForm((prev) => ({ ...prev, shortName: e.target.value }))}
+                              className={`${inputClass} flex-1`}
+                              maxLength={5}
+                              required
+                            />
+                          </div>
+                        </Field>
+                      )}
                     </div>
                   </SectionCard>
                   <button
@@ -626,26 +661,88 @@ export default function EditPage() {
 
               {generalSelection === 'address' && (
                 <form onSubmit={handleSaveGeneralAddress} className="space-y-4 max-w-lg">
-                  <SectionCard title="ที่อยู่สตูดิโอ" description="แสดงบนหน้าติดต่อ">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="บรรทัดที่ 1">
+                  <SectionCard title="ที่อยู่" description="แสดงใน Footer และหน้าติดต่อ — ใส่ลิงก์แชร์จาก Google Maps ได้">
+                    <div className="space-y-4">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">ที่อยู่</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field label="บรรทัดที่ 1">
+                          <input
+                            type="text"
+                            value={brandForm.hqAddressLine1}
+                            onChange={(e) => setBrandForm((prev) => ({ ...prev, hqAddressLine1: e.target.value }))}
+                            className={inputClass}
+                            required
+                          />
+                        </Field>
+                        <Field label="บรรทัดที่ 2">
+                          <input
+                            type="text"
+                            value={brandForm.hqAddressLine2}
+                            onChange={(e) => setBrandForm((prev) => ({ ...prev, hqAddressLine2: e.target.value }))}
+                            className={inputClass}
+                          />
+                        </Field>
+                      </div>
+                      <Field label="ลิงก์แผนที่" hint="ลิงก์แชร์จาก Google Maps — กดที่อยู่แล้วเปิดในแท็บใหม่">
                         <input
-                          type="text"
-                          value={brandForm.hqAddressLine1}
-                          onChange={(e) => setBrandForm((prev) => ({ ...prev, hqAddressLine1: e.target.value }))}
+                          type="url"
+                          value={brandForm.hqAddressMapUrl}
+                          onChange={(e) => setBrandForm((prev) => ({ ...prev, hqAddressMapUrl: e.target.value }))}
                           className={inputClass}
-                          required
+                          placeholder="https://maps.app.goo.gl/..."
                         />
                       </Field>
-                      <Field label="บรรทัดที่ 2">
+
+                      <label className="flex items-center gap-3 cursor-pointer pt-2">
                         <input
-                          type="text"
-                          value={brandForm.hqAddressLine2}
-                          onChange={(e) => setBrandForm((prev) => ({ ...prev, hqAddressLine2: e.target.value }))}
-                          className={inputClass}
-                          required
+                          type="checkbox"
+                          checked={brandForm.hqAddress2Enabled}
+                          onChange={(e) =>
+                            setBrandForm((prev) => ({ ...prev, hqAddress2Enabled: e.target.checked }))
+                          }
+                          className="w-4 h-4 accent-black"
                         />
-                      </Field>
+                        <span className="text-sm font-medium text-gray-800">เพิ่มที่อยู่ 2</span>
+                      </label>
+
+                      {brandForm.hqAddress2Enabled && (
+                        <div className="space-y-4 border border-gray-200 bg-gray-50/40 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">ที่อยู่ 2</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="บรรทัดที่ 1">
+                              <input
+                                type="text"
+                                value={brandForm.hqAddress2Line1}
+                                onChange={(e) =>
+                                  setBrandForm((prev) => ({ ...prev, hqAddress2Line1: e.target.value }))
+                                }
+                                className={inputClass}
+                              />
+                            </Field>
+                            <Field label="บรรทัดที่ 2">
+                              <input
+                                type="text"
+                                value={brandForm.hqAddress2Line2}
+                                onChange={(e) =>
+                                  setBrandForm((prev) => ({ ...prev, hqAddress2Line2: e.target.value }))
+                                }
+                                className={inputClass}
+                              />
+                            </Field>
+                          </div>
+                          <Field label="ลิงก์แผนที่" hint="ลิงก์แชร์จาก Google Maps">
+                            <input
+                              type="url"
+                              value={brandForm.hqAddress2MapUrl}
+                              onChange={(e) =>
+                                setBrandForm((prev) => ({ ...prev, hqAddress2MapUrl: e.target.value }))
+                              }
+                              className={inputClass}
+                              placeholder="https://maps.app.goo.gl/..."
+                            />
+                          </Field>
+                        </div>
+                      )}
                     </div>
                   </SectionCard>
                   <button
@@ -863,56 +960,44 @@ export default function EditPage() {
                 </div>
               </div>
 
+              <div className="rounded border border-gray-200 bg-gray-50 p-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-700">
+                  สไลด์อัตโนมัติ ({inspirationSlidesPreview.length}/{MAX_INSPIRATION_SLIDES})
+                </p>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  สุ่มจากการ์ดทุกเมนู สูงสุด {MAX_INSPIRATION_SLIDES} ใบ — ชุดเดียวกันตลอดวัน เปลี่ยนเมื่อขึ้นวันใหม่
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {slidesForm.map((slide) => (
-                  <div key={slide.id} className="border border-gray-200 relative group">
-                    <div className={`${aspectRatioClass(SLIDE_DEFAULT_ASPECT_RATIO)} relative bg-gray-100`}>
-                      <Image src={slide.imageUrl} alt={slide.title} fill sizes="(max-width: 640px) 50vw, 20vw" className="object-cover" unoptimized={shouldBypassImageOptimizer(slide.imageUrl)} referrerPolicy="no-referrer" />
+                {inspirationSlidesPreview.map((slide) => (
+                    <div key={slide.id} className="border border-gray-200 relative">
+                      <div className={`${aspectRatioClass(SLIDE_DEFAULT_ASPECT_RATIO)} relative bg-gray-100`}>
+                        <Image
+                          src={slide.imageUrl}
+                          alt={slide.title}
+                          fill
+                          sizes="(max-width: 640px) 50vw, 20vw"
+                          className="object-cover"
+                          unoptimized={shouldBypassImageOptimizer(slide.imageUrl)}
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <p className="text-xs font-semibold truncate">{slide.title}</p>
+                        <p className="text-[10px] text-gray-400 uppercase">
+                          {stylePages.find((p) => p.id === slide.pageId)?.name}
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-3">
-                      <p className="text-xs font-semibold truncate">{slide.title}</p>
-                      <p className="text-[10px] text-gray-400 uppercase">{stylePages.find((p) => p.id === slide.pageId)?.name}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveHomeSlide(slide.id)}
-                      className="absolute top-2 right-2 bg-black/60 text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
                 ))}
               </div>
 
-              <div className="border border-dashed border-gray-300 p-6 space-y-4">
-                <h3 className="text-xs uppercase font-bold tracking-widest">{t('edit.homeSlides.addSlide')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder={t('edit.homeSlides.slideTitle')}
-                    value={newSlideTitle}
-                    onChange={(e) => setNewSlideTitle(e.target.value)}
-                    className="border border-gray-200 p-3 text-sm focus:outline-none focus:border-black"
-                  />
-                  <select
-                    value={newSlidePageId}
-                    onChange={(e) => setNewSlidePageId(e.target.value)}
-                    className="border border-gray-200 p-3 text-sm focus:outline-none focus:border-black bg-white"
-                  >
-                    {stylePages.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSlideCropOpen(true)}
-                  className="bg-gray-100 hover:bg-gray-200 text-black px-5 py-3 text-xs font-semibold uppercase tracking-widest transition-colors flex items-center gap-2"
-                >
-                  <Upload size={14} />
-                  {t('edit.homeSlides.uploadImage')}
-                </button>
-              </div>
+              {inspirationSlidesPreview.length === 0 && (
+                <p className="text-sm text-gray-400 border border-dashed border-gray-300 p-6 text-center">
+                  ยังไม่มีการ์ดผลงาน — เพิ่มการ์ดในเมนูก่อน
+                </p>
+              )}
 
               <button type="submit" className="bg-black text-white px-8 py-4 text-xs font-semibold uppercase tracking-widest hover:bg-neutral-800 transition-colors flex items-center gap-2">
                 <Save size={16} />
@@ -1562,15 +1647,15 @@ export default function EditPage() {
       />
 
       <ImageUploadCrop
-        open={slideCropOpen}
-        onClose={() => setSlideCropOpen(false)}
-        onComplete={handleAddHomeSlide}
-        defaultAspectRatio={SLIDE_DEFAULT_ASPECT_RATIO}
+        open={brandLogoCropOpen}
+        onClose={() => setBrandLogoCropOpen(false)}
+        onComplete={handleBrandLogoCropComplete}
+        defaultAspectRatio="1:1"
+        lockAspectRatio
         pickFileOnOpen
         showPreviewFrame
-        lockAspectRatio
-        previewFrameLabel={t('edit.homeSlides.previewFrameLabel')}
-        cropHint={t('edit.homeSlides.cropHint')}
+        previewFrameLabel="กรอบไอคอน Header"
+        cropHint="รูปจะถูกปรับให้พอดีกับกรอบสี่เหลี่ยมใน Header"
       />
 
       <ImageUploadCrop

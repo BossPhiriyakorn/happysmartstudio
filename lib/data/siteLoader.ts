@@ -21,6 +21,8 @@ import {
   migrateTeamMember,
   storedJsonNeedsUnsplashFix,
   syncDemoRoomShowcaseContent,
+  syncDemoRoomCatalog,
+  syncDemoHomeSlides,
 } from '@/lib/data/migrations';
 import type { SiteSnapshot } from '@/lib/data/types';
 import type { HomeSlide, Room, TeamMember } from '@/types/content';
@@ -109,11 +111,25 @@ export function loadSiteFromLocalStorage(): SiteSnapshot {
   }
 
   if (ENABLE_MOCK_DATA && rooms.length > 0) {
+    const catalog = syncDemoRoomCatalog(rooms);
+    if (catalog.changed) {
+      rooms = catalog.rooms;
+    }
     const synced = syncDemoRoomShowcaseContent(rooms);
     if (synced.changed) {
       rooms = synced.rooms;
+    }
+    if ((catalog.changed || synced.changed) && typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.rooms, JSON.stringify(rooms));
+    }
+  }
+
+  if (ENABLE_MOCK_DATA && homeSlides.length >= 0) {
+    const slideSync = syncDemoHomeSlides(homeSlides);
+    if (slideSync.changed) {
+      homeSlides = slideSync.homeSlides;
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.rooms, JSON.stringify(rooms));
+        localStorage.setItem(STORAGE_KEYS.homeSlides, JSON.stringify(homeSlides));
       }
     }
   }

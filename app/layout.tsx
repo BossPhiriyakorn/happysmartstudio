@@ -21,13 +21,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
             __html: `(function(){try{if(location.pathname==='/edit')return;document.documentElement.classList.add('cinematic-lock');window.__cinematicLockFailsafe=window.setTimeout(function(){document.documentElement.classList.remove('cinematic-lock');window.__cinematicLockFailsafe=undefined;},8000);}catch(e){document.documentElement.classList.remove('cinematic-lock');}})();`,
           }}
         />
-        {process.env.NODE_ENV === 'development' && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `(function(){try{var k='__dev_chunk_reload';function reloadOnce(){if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1');location.reload();}function isChunk(r){if(!r)return false;var m=typeof r==='string'?r:(r.message||'');var n=typeof r==='object'&&r.name?r.name:'';return n==='ChunkLoadError'||m.indexOf('Loading chunk')>-1;}window.addEventListener('error',function(e){if(isChunk(e.message))reloadOnce();},true);window.addEventListener('unhandledrejection',function(e){if(isChunk(e.reason))reloadOnce();});}catch(x){}})();`,
-            }}
-          />
-        )}
       </head>
       <body className={`${inter.className} bg-gray-100 text-black min-h-screen font-sans antialiased`} suppressHydrationWarning>
         <DevChunkRecovery />

@@ -30,7 +30,11 @@ export const publicUi = {
   "modal": {
     "estimatedValue": "มูลค่าโดยประมาณ",
     "conceptOverview": "ภาพรวมคอนเซ็ปต์",
-    "consultNow": "ปรึกษาตอนนี้"
+    "consultNow": "ปรึกษาตอนนี้",
+    "share": "แชร์",
+    "shareCopied": "คัดลอกลิงก์แล้ว",
+    "shareShared": "แชร์แล้ว",
+    "shareFailed": "ไม่สามารถแชร์ได้"
   },
   "stylePage": {
     "curatedDesigns": "ดีไซน์คัดสรร",

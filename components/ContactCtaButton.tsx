@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { motion, type HTMLMotionProps } from 'motion/react';
 import ContactChannelPicker from '@/components/ContactChannelPicker';
 import { useApp } from '@/components/AppContext';
 import { CONTACT_CHANNEL_LABELS } from '@/lib/contactLabels';
 import { getContactChannelOptions, openContactChannel } from '@/lib/contactChannels';
 
-interface ContactCtaButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ContactCtaButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'> {
   label?: string;
   children?: ReactNode;
 }
@@ -39,14 +40,14 @@ export default function ContactCtaButton({
 
   return (
     <>
-      <button
+      <motion.button
         type="button"
         disabled={disabled ?? options.length === 0}
         onClick={handleClick}
         {...props}
       >
         {children ?? label ?? contactLabel}
-      </button>
+      </motion.button>
       <ContactChannelPicker open={pickerOpen} onClose={() => setPickerOpen(false)} options={options} />
     </>
   );

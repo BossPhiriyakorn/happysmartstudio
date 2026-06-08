@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS site_branding (
   site_id              TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
   name                 TEXT NOT NULL,
   home_label           TEXT NOT NULL DEFAULT '',
+  icon_mode            TEXT NOT NULL DEFAULT 'text',
+  logo_url             TEXT NOT NULL DEFAULT '',
   short_name           TEXT NOT NULL,
   intro_kicker         TEXT NOT NULL DEFAULT '',
   intro_title          TEXT NOT NULL DEFAULT '',
@@ -60,6 +62,11 @@ CREATE TABLE IF NOT EXISTS site_branding (
   team_section_description TEXT NOT NULL DEFAULT '',
   hq_address_line1     TEXT NOT NULL DEFAULT '',
   hq_address_line2     TEXT NOT NULL DEFAULT '',
+  hq_address_map_url   TEXT NOT NULL DEFAULT '',
+  hq_address2_enabled  INTEGER NOT NULL DEFAULT 0 CHECK (hq_address2_enabled IN (0, 1)),
+  hq_address2_line1    TEXT NOT NULL DEFAULT '',
+  hq_address2_line2    TEXT NOT NULL DEFAULT '',
+  hq_address2_map_url  TEXT NOT NULL DEFAULT '',
   footer_title         TEXT NOT NULL DEFAULT '',
   footer_description   TEXT NOT NULL DEFAULT '',
   contact_hero_title   TEXT NOT NULL DEFAULT '',
@@ -104,7 +111,7 @@ INSERT OR IGNORE INTO site_branding (
   'ช่องทางติดต่อ',
   'เลือกช่องทางที่สะดวก — กดปุ่มด้านล่างเพื่อติดต่อเรา',
   'ยังไม่ได้ตั้งค่าช่องทางติดต่อ',
-  'สตูดิโอสำนักงานใหญ่',
+  'ที่อยู่',
   'เวลาให้คำปรึกษา',
   'จันทร์–ศุกร์: 9:00 – 18:00\nเสาร์ (นัดหมาย): 10:00 – 16:00'
 );
@@ -440,6 +447,23 @@ GROUP BY site_id, room_id, room_name, page_id, page_label;
 
 INSERT OR IGNORE INTO schema_migrations (version, name)
 VALUES (2, 'analytics_events');
+
+-- Migration 3: branding icon mode + logo URL (existing databases)
+ALTER TABLE site_branding ADD COLUMN icon_mode TEXT NOT NULL DEFAULT 'text';
+ALTER TABLE site_branding ADD COLUMN logo_url TEXT NOT NULL DEFAULT '';
+
+INSERT OR IGNORE INTO schema_migrations (version, name)
+VALUES (3, 'branding_icon_fields');
+
+-- Migration 4: studio addresses with map links + optional second address
+ALTER TABLE site_branding ADD COLUMN hq_address_map_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE site_branding ADD COLUMN hq_address2_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE site_branding ADD COLUMN hq_address2_line1 TEXT NOT NULL DEFAULT '';
+ALTER TABLE site_branding ADD COLUMN hq_address2_line2 TEXT NOT NULL DEFAULT '';
+ALTER TABLE site_branding ADD COLUMN hq_address2_map_url TEXT NOT NULL DEFAULT '';
+
+INSERT OR IGNORE INTO schema_migrations (version, name)
+VALUES (4, 'studio_address_map_links');
 
 -- -----------------------------------------------------------------------------
 -- Triggers: bump parent updated_at

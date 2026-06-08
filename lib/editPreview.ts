@@ -26,14 +26,12 @@ export interface EditPreviewDraft {
 
 export function buildEditPreviewDraft(input: {
   brandForm: Branding;
-  slidesForm: HomeSlide[];
   contactForm: { label: string; line: string; phone: string; email: string };
   activeStyleMenuId: string | null;
   pageSettingsForm: { name: string; description: string };
 }): EditPreviewDraft {
   const draft: EditPreviewDraft = {
     branding: input.brandForm,
-    homeSlides: input.slidesForm,
     contactChannels: {
       line: input.contactForm.line || undefined,
       phone: input.contactForm.phone || undefined,
