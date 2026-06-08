@@ -8,6 +8,8 @@ import { aspectRatioClass } from '@/lib/imageCrop';
 import { shouldBypassImageOptimizer } from '@/lib/imageDisplay';
 import { roomCoverAspectRatio, roomToPortfolioImages } from '@/lib/roomImages';
 
+const FEED_SLIDESHOW_INTERVAL_MS = 20_000;
+
 type FeedSlide = Pick<PortfolioImage, 'url' | 'aspectRatio'>;
 
 function FeedSlideshow({
@@ -32,7 +34,7 @@ function FeedSlideshow({
     if (safeSlides.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % safeSlides.length);
-    }, 8000);
+    }, FEED_SLIDESHOW_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [safeSlides]);
 
